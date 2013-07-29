@@ -1,0 +1,23 @@
+name:                  utp
+version:               0.1.0.0
+license:               BSD3
+license-file:          LICENSE
+author:                Sam T.
+maintainer:            Sam T. <pxqr.sta@gmail.com>
+copyright:             (c) 2013, Sam T.
+category:              Network
+build-type:            Simple
+cabal-version:         >= 1.8
+tested-with:           GHC == 7.6.3
+synopsis:              micro transport protocol
+-- description:
+
+library
+  exposed-modules:     Network.UTP,
+  other-modules:       Network.UTP.Packet
+                     , Network.UTP.Socket
+  build-depends:       base       == 4.6.*
+                     , bytestring == 0.10.*
+                     , cereal     == 0.3.*
+                     , network    == 2.4.*
+  hs-source-dirs:      src
