@@ -1,4 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
 module Network.UTP.Packet  where
 
 import Control.Applicative
