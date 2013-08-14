@@ -24,6 +24,7 @@ library
                      , RecordWildCards
 
   C-sources:           cbits/utp.c
+  CC-options:          -O3 -Wall
   include-dirs:        include
   includes:            utp.h
   install-includes:    utp.h

@@ -153,6 +153,9 @@ int finalize(struct usocket * sock)
     fin.type = ST_FIN;
 
     int ret = send_pkt(sock, &fin);
+    if (ret == -1) {
+        return ret;
+    }
 
     packet ack;
     ret = recv_pkt(sock, &ack);
@@ -161,6 +164,8 @@ int finalize(struct usocket * sock)
     } else {
         return -1;
     }
+
+    return ret;
 }
 
 struct usocket* usocket()
@@ -197,7 +202,7 @@ int uclose(struct usocket * sock)
     int ret1 = finalize(sock);
     int ret2 = close(sock->fd);
     free(sock);
-    return ret1;
+    return ret1 | ret2;
 }
 
 connection_id gen_conn_id()
