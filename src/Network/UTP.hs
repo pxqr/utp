@@ -1,12 +1,14 @@
 
 module Network.UTP
        ( Socket
+       , N.SockAddr (..)
 
          -- * Socket operations
        , socket
        , connect
        , bind
        , listen
+       , listenOn
        , accept
        , close
 
@@ -16,3 +18,4 @@ module Network.UTP
        ) where
 
 import Network.UTP.Socket
+import qualified Network.Socket as N

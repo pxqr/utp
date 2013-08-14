@@ -116,7 +116,6 @@ bind Socket {..} addr =
 listen :: Socket -> Int -> IO ()
 listen Socket {..} qsize =
   modifyMVar_ state $ \st -> do
---    N.listen sock qsize
     return $ st { status = Listening
                 }
 
