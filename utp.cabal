@@ -23,11 +23,13 @@ library
   default-extensions:  PatternGuards
                      , RecordWildCards
 
+  C-sources:           cbits/utp.c
+  include-dirs:        include
+  includes:            utp.h
+  install-includes:    utp.h
+
   hs-source-dirs:      src
   exposed-modules:     Network.UTP
-  other-modules:       Network.UTP.Packet
-                     , Network.UTP.Socket
-
   build-depends:       base       == 4.6.*
                      , bytestring == 0.10.*
                      , cereal     == 0.3.*

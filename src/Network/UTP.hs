@@ -1,21 +1,7 @@
-
+{-# LANGUAGE ForeignFunctionInterface #-}
 module Network.UTP
-       ( Socket
-       , N.SockAddr (..)
-
-         -- * Socket operations
-       , socket
-       , connect
-       , bind
-       , listen
-       , listenOn
-       , accept
-       , close
-
-         -- * Sending and receiving data
-       , send
-       , recv
+       ( c_socket
        ) where
 
-import Network.UTP.Socket
-import qualified Network.Socket as N
+foreign import ccall "usocket"
+  c_socket :: IO ()

@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -11,6 +12,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 
 typedef uint8_t  capabilities ;
