@@ -202,7 +202,7 @@ int uclose(struct usocket * sock)
     int ret1 = finalize(sock);
     int ret2 = close(sock->fd);
     free(sock);
-    return ret1 | ret2;
+    return ret2;
 }
 
 connection_id gen_conn_id()

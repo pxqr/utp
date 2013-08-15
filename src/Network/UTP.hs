@@ -1,7 +1,118 @@
+{-# LANGUAGE EmptyDataDecls           #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Network.UTP
-       ( c_socket
+       ( SockAddr(..)
+       , socket, close, withSocket
+
+       , connect
+       , bind, listen, accept
+
+       , send, recv
+       , sendAll
        ) where
 
-foreign import ccall "usocket"
-  c_socket :: IO ()
+import Control.Exception
+import Control.Monad
+import Data.ByteString as BS
+import Data.ByteString.Internal as BS
+import Data.Word
+import Network.Socket (SockAddr(..))
+
+import Foreign.C.Error
+import Foreign.C.Types
+import Foreign.Marshal
+import Foreign.Ptr
+import Foreign.ForeignPtr
+import Foreign.Storable
+
+
+data SockStruct
+type Socket = Ptr SockStruct
+-- TODO type Socket = MVar (ForeignPtr SockStruct) ?
+
+instance Storable SockAddr
+
+foreign import ccall unsafe "usocket"
+  c_socket :: IO Socket
+
+foreign import ccall unsafe "uclose"
+  c_close :: Socket -> IO CInt
+
+foreign import ccall unsafe "uconnect"
+  c_connect :: Socket -> Ptr SockAddr -> CInt -> IO CInt
+
+foreign import ccall unsafe "ubind"
+  c_bind :: Socket -> Ptr SockAddr -> CInt -> IO CInt
+
+foreign import ccall unsafe "ulisten"
+  c_listen :: Socket -> CInt -> IO CInt
+
+foreign import ccall unsafe "uaccept"
+  c_accept :: Socket -> Ptr SockAddr -> Ptr CInt -> IO Socket
+
+foreign import ccall unsafe "urecv"
+  c_recv :: Socket -> Ptr Word8 -> CSize -> IO CInt
+
+foreign import ccall unsafe "usend"
+  c_send :: Socket -> Ptr () -> CSize -> IO CInt
+
+socket :: IO Socket
+socket = throwErrnoIfNull "open" c_socket
+
+close :: Socket -> IO ()
+close sock =
+  throwErrnoIfMinus1_ "close" $ do
+    c_close sock
+
+withSocket :: (Socket -> IO a) -> IO a
+withSocket = bracket socket close
+
+connect :: Socket -> SockAddr -> IO ()
+connect sock addr =
+  throwErrnoIfMinus1_ "connect" $ do
+    with addr $ \sock_addr -> do
+      let sock_len = fromIntegral $ sizeOf addr
+      c_connect sock sock_addr sock_len
+
+bind :: Socket -> SockAddr -> IO ()
+bind sock addr =
+  throwErrnoIfMinus1_ "bind" $ do
+    with addr $ \sock_addr -> do
+      let sock_len = fromIntegral $ sizeOf addr
+      c_bind sock sock_addr sock_len
+
+listen :: Socket -> Int -> IO ()
+listen sock qlen =
+  throwErrnoIfMinus1_ "listen" $ do
+    c_listen sock (fromIntegral qlen)
+
+-- TODO use Foreign.Marshal.Pool to avoid alloca?
+accept :: Socket -> IO (Socket, SockAddr)
+accept sock =
+  alloca $ \sock_addr -> do
+    with 0 $ \sock_len -> do
+      conn <- throwErrnoIfNull "accept" $ do
+                c_accept sock sock_addr sock_len
+      sockAddr <- peek sock_addr
+      return (conn, sockAddr)
+
+recv :: Socket -> Int -> IO ByteString
+recv sock len = do
+  createAndTrim len $ \ptr -> do
+    throwErrnoIfMinus1 "recv" $ do
+      ret <- c_recv sock ptr (fromIntegral len)
+      return $ fromIntegral ret
+
+send :: Socket -> ByteString -> IO Int
+send sock bs =
+  throwErrnoIfMinus1 "send" $ do
+    let (fptr, off, len) = toForeignPtr bs
+    withForeignPtr fptr $ \ptr -> do
+      ret <- c_send sock (ptr `plusPtr` off) (fromIntegral len)
+      return $ fromIntegral ret
+
+sendAll :: Socket -> ByteString -> IO ()
+sendAll sock bs = do
+  len <- send sock bs
+  when (len /= BS.length bs) $ do
+    sendAll sock $ BS.drop len bs
