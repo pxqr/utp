@@ -26,7 +26,9 @@ typedef enum _packet_type {
     ST_FIN,
     ST_STATE,
     ST_RESET,
-    ST_SYN
+    ST_SYN,
+
+    ST_MIN = ST_DATA, ST_MAX = ST_SYN
 } packet_type;
 
 unsigned int utp_version1 = 1;
@@ -141,24 +143,47 @@ int inflight(struct usocket * sock)
     return 0;
 }
 
+/* NOTE according to gettimeofday(2) it's can't return (-1) in the
+ following usage. so, it's safe to ignore ret value completely.  */
+suseconds_t get_usec()
+{
+    struct timeval tv;
+    int ret = gettimeofday(&tv, NULL);
+    assert(ret != -1);
+    return tv.tv_usec;
+}
+
 int fill_header(struct usocket * sock, packet * pkt)
 {
     pkt->type      = 0;
     pkt->version   = utp_version1;
     pkt->extension = no_ext;
     pkt->conn_id   = sock->conn_id_send;
-
-    struct timeval tv;
-    int ret = gettimeofday(&tv, NULL);
-
-    pkt->time_sent = tv.tv_usec;
+    pkt->time_sent = get_usec();
     pkt->time_diff = sock->reply_micro;
     pkt->wnd_size  = inflight(sock);
     // FIXME do not increase seq_nr for packets with no payload
     pkt->seq_nr    = sock->seq_nr++;
     pkt->ack_nr    = sock->ack_nr;
 
-    return ret;
+    return 0;
+}
+
+int after_recv(struct usocket * sock, packet * pkt)
+{
+    bool typ_ok = (ST_MIN <= pkt->type) && (pkt->type <= ST_MAX);
+    bool ver_ok = pkt->version   == utp_version1;
+    bool ext_ok = pkt->extension == no_ext;
+    bool cid_ok = pkt->conn_id   == sock->conn_id_recv;
+
+    if (!(typ_ok && ver_ok && ext_ok && cid_ok)) {
+        errno = EPROTO;
+        return -1;
+    }
+
+    sock->reply_micro = get_usec() - pkt->time_sent;
+    fprintf(stderr, "reply_micro %d\n", sock->reply_micro);
+    return 0;
 }
 
 int send_pkt(struct usocket * sock, packet * pkt)
@@ -179,6 +204,7 @@ int recv_pkt(struct usocket * sock, packet * pkt)
                       , (struct sockaddr *) &recv_addr, &recv_addrlen);
 
     // TODO check if addrs the same
+    after_recv(sock, pkt);
     return ret;
 }
 
