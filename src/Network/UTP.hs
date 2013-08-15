@@ -28,6 +28,7 @@ import Foreign.Storable
 
 data SockStruct
 type Socket = Ptr SockStruct
+type CSockLen = CInt
 -- TODO type Socket = MVar (ForeignPtr SockStruct) ?
 
 instance Storable SockAddr
@@ -39,16 +40,16 @@ foreign import ccall unsafe "uclose"
   c_close :: Socket -> IO CInt
 
 foreign import ccall unsafe "uconnect"
-  c_connect :: Socket -> Ptr SockAddr -> CInt -> IO CInt
+  c_connect :: Socket -> Ptr SockAddr -> CSockLen -> IO CInt
 
 foreign import ccall unsafe "ubind"
-  c_bind :: Socket -> Ptr SockAddr -> CInt -> IO CInt
+  c_bind :: Socket -> Ptr SockAddr -> CSockLen -> IO CInt
 
 foreign import ccall unsafe "ulisten"
   c_listen :: Socket -> CInt -> IO CInt
 
 foreign import ccall unsafe "uaccept"
-  c_accept :: Socket -> Ptr SockAddr -> Ptr CInt -> IO Socket
+  c_accept :: Socket -> Ptr SockAddr -> Ptr CSockLen -> IO Socket
 
 foreign import ccall unsafe "urecv"
   c_recv :: Socket -> Ptr Word8 -> CSize -> IO CInt
