@@ -251,7 +251,7 @@ struct usocket* usocket()
     sock->wnd_size = 1;
     sock->cur_wind = 0;
     sock->reply_micro = 0;
-    sock->seq_nr = 0;
+    sock->seq_nr = 1;
     sock->ack_nr = 0;
     sock->status = NOT_CONNECTED;
     sock->conn_id_send = 0;
@@ -365,10 +365,10 @@ uaccept( struct usocket * sock
     packet * init_hdr = (packet *)buf;
     print_packet(init_hdr);
 
-    if (!valid_init_header(init_hdr)) {
-        errno = EPROTO;
-        return NULL;
-    }
+    //    if (!valid_init_header(init_hdr)) {
+    //        errno = EPROTO;
+    //        return NULL;
+    //    }
 
     struct usocket * conn = usocket();
     if (conn == NULL) {
@@ -378,12 +378,15 @@ uaccept( struct usocket * sock
     conn->conn_id_recv = init_hdr->conn_id + 1;
     conn->seq_nr       = rand();
     conn->ack_nr       = init_hdr->seq_nr;
+    conn->addr         = *addr;
+    conn->addrlen      = *addrlen;
     conn->status       = CONNECTED;
 
-    packet st;
-    fill_header(conn, &st, ST_STATE);
-    size = sendto( sock->fd, &st, sizeof(st), 0
-                 , addr, *addrlen);
+    packet state;
+    fill_header(conn, &state, ST_STATE);
+    send_pkt(conn, &state);
+
+    print_packet(&state);
 
     return conn;
 }
