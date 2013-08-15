@@ -10,7 +10,7 @@ main = do
   let port = fromIntegral (read str :: Int)
   let addr = SockAddrInet port iNADDR_ANY
 
-  sock <-  socket
+  sock <- socket
   putStrLn "socket opened"
 
   connect sock addr

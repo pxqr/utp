@@ -16,8 +16,9 @@ main = do
 
   bind sock addr
   putStrLn "socket bound"
-  listen sock 1
-  putStrLn "socket listening"
+
+--  listen sock 1
+--  putStrLn "socket listening"
 
   _ <- forever $ do
     (_, conn_addr) <- accept sock

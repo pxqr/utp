@@ -20,22 +20,20 @@ import Control.Monad
 import Data.ByteString as BS
 import Data.ByteString.Internal as BS
 import Data.Word
-import Network.Socket (PortNumber, SockAddr(..), iNADDR_ANY)
+import Network.Socket (iNADDR_ANY)
+import Network.Socket.Internal
 
 import Foreign.C.Error
 import Foreign.C.Types
 import Foreign.Marshal
 import Foreign.Ptr
 import Foreign.ForeignPtr
-import Foreign.Storable
 
 
 data SockStruct
 type Socket = Ptr SockStruct
 type CSockLen = CInt
 -- TODO type Socket = MVar (ForeignPtr SockStruct) ?
-
-instance Storable SockAddr
 
 foreign import ccall unsafe "usocket"
   c_socket :: IO Socket
@@ -75,16 +73,14 @@ withSocket = bracket socket close
 connect :: Socket -> SockAddr -> IO ()
 connect sock addr =
   throwErrnoIfMinus1_ "connect" $ do
-    with addr $ \sock_addr -> do
-      let sock_len = fromIntegral $ sizeOf addr
-      c_connect sock sock_addr sock_len
+    withSockAddr addr $ \sock_addr sock_len -> do
+      c_connect sock sock_addr (fromIntegral sock_len)
 
 bind :: Socket -> SockAddr -> IO ()
 bind sock addr =
   throwErrnoIfMinus1_ "bind" $ do
-    with addr $ \sock_addr -> do
-      let sock_len = fromIntegral $ sizeOf addr
-      c_bind sock sock_addr sock_len
+    withSockAddr addr $ \sock_addr sock_len -> do
+      c_bind sock sock_addr (fromIntegral sock_len)
 
 listen :: Socket -> Int -> IO ()
 listen sock qlen =
@@ -104,11 +100,11 @@ listenOn port = do
 -- TODO use Foreign.Marshal.Pool to avoid alloca?
 accept :: Socket -> IO (Socket, SockAddr)
 accept sock =
-  alloca $ \sock_addr -> do
-    with 0 $ \sock_len -> do
+  withNewSockAddr AF_INET $ \sock_addr sock_len_val -> do
+    with (fromIntegral sock_len_val) $ \sock_len -> do
       conn <- throwErrnoIfNull "accept" $ do
                 c_accept sock sock_addr sock_len
-      sockAddr <- peek sock_addr
+      sockAddr <- peekSockAddr sock_addr
       return (conn, sockAddr)
 
 recv :: Socket -> Int -> IO ByteString
