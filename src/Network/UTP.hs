@@ -1,7 +1,7 @@
 {-# LANGUAGE EmptyDataDecls           #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Network.UTP
-       ( Socket, PortNumber, SockAddr(..)
+       ( Socket, PortNumber, SockAddr(..), iNADDR_ANY
        , socket, close, withSocket
 
        , connect
