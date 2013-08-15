@@ -57,9 +57,21 @@ typedef struct _packet {
 
 STATIC_ASSERT(incorrect_packet_size, sizeof(packet) == 20)
 
+char * get_packet_type_str(packet_type ty)
+{
+    switch (ty) {
+    case ST_DATA:  return "DATA";
+    case ST_FIN:   return "FIN";
+    case ST_STATE: return "STATE";
+    case ST_RESET: return "RESET";
+    case ST_SYN:   return "SYN";
+    default:       return "UNKNOWN";
+    };
+}
+
 void print_packet(packet * p)
 {
-    fprintf(stderr, "type      = %d\n", p->type);
+    fprintf(stderr, "type      = %s\n", get_packet_type_str(p->type));
     fprintf(stderr, "version   = %d\n", p->version);
     fprintf(stderr, "extension = %d\n", p->extension);
     fprintf(stderr, "conn_id   = %d\n", p->conn_id);
@@ -99,6 +111,30 @@ struct usocket {
 
     int fd;
 };
+
+char * get_status_str(socket_status st)
+{
+    switch (st) {
+    case NOT_CONNECTED: return "NOT_CONNECTED";
+    case CONNECTED:     return "CONNECTED";
+    case BOUND:         return "BOUND";
+    case LISTENING:     return "LISTENING";
+    case CLOSED:        return "CLOSED";
+    default:            return "INVALID";
+    }
+}
+
+void print_sock_state(struct usocket * sock)
+{
+    fprintf(stderr, "socket is %s\n", get_status_str(sock->status));
+    fprintf(stderr, "window  size = %d\n", sock->wnd_size);
+    fprintf(stderr, "current size = %d\n", sock->cur_wind);
+    fprintf(stderr, "reply  micro = %d\n", sock->reply_micro);
+    fprintf(stderr, "sent seq  nr = %d\n", sock->seq_nr);
+    fprintf(stderr, "recv seq  nr = %d\n", sock->ack_nr);
+    fprintf(stderr, "send conn id = %d\n", sock->conn_id_send);
+    fprintf(stderr, "recv conn id = %d\n", sock->conn_id_recv);
+}
 
 int inflight(struct usocket * sock)
 {
