@@ -138,6 +138,18 @@ void print_sock_state(struct usocket * sock)
     fprintf(stderr, "recv conn id = %d\n", sock->conn_id_recv);
 }
 
+bool is_acceptor(struct usocket * sock)
+{
+    assert(sock);
+    return sock->conn_id_send + 1 == sock->conn_id_recv;
+}
+
+bool is_connector(struct usocket * sock)
+{
+    assert(sock);
+    return sock->conn_id_recv + 1 == sock->conn_id_send;
+}
+
 int inflight(struct usocket * sock)
 {
     return 0;
