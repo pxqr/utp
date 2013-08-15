@@ -199,10 +199,14 @@ int uclose(struct usocket * sock)
 {
     assert(sock != NULL);
 
-    int ret1 = finalize(sock);
+    int ret1 = 0;
+    if (sock->status == CONNECTED) {
+      ret1 = finalize(sock);
+    }
+
     int ret2 = close(sock->fd);
     free(sock);
-    return ret2;
+    return ret1 | ret2;
 }
 
 connection_id gen_conn_id()
