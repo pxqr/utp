@@ -21,8 +21,9 @@ main = do
 --  putStrLn "socket listening"
 
   _ <- forever $ do
-    (_, conn_addr) <- accept sock
+    (conn, conn_addr) <- accept sock
     putStrLn $ "accepted " ++ show conn_addr
+--    close conn
 
   close sock
   putStrLn "socket closed"

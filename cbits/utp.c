@@ -153,12 +153,13 @@ suseconds_t get_usec()
     return tv.tv_usec;
 }
 
-int fill_header(struct usocket * sock, packet * pkt)
+int fill_header(struct usocket * sock, packet * pkt, packet_type ty)
 {
-    pkt->type      = 0;
+    pkt->type      = ty;
     pkt->version   = utp_version1;
     pkt->extension = no_ext;
-    pkt->conn_id   = sock->conn_id_send;
+    pkt->conn_id   = ty == ST_SYN ? sock->conn_id_recv
+                                  : sock->conn_id_send;
     pkt->time_sent = get_usec();
     pkt->time_diff = sock->reply_micro;
     pkt->wnd_size  = inflight(sock);
@@ -182,7 +183,6 @@ int after_recv(struct usocket * sock, packet * pkt)
     }
 
     sock->reply_micro = get_usec() - pkt->time_sent;
-    fprintf(stderr, "reply_micro %d\n", sock->reply_micro);
     return 0;
 }
 
@@ -203,16 +203,20 @@ int recv_pkt(struct usocket * sock, packet * pkt)
                       , pkt, sizeof(struct _packet), 0
                       , (struct sockaddr *) &recv_addr, &recv_addrlen);
 
+    if (ret != sizeof(struct _packet)) {
+        errno = EPROTO;
+        return -1;
+    }
+
     // TODO check if addrs the same
-    after_recv(sock, pkt);
+    ret = after_recv(sock, pkt);
     return ret;
 }
 
 int finalize(struct usocket * sock)
 {
     packet fin;
-    fill_header(sock, &fin);
-    fin.type = ST_FIN;
+    fill_header(sock, &fin, ST_FIN);
 
     int ret = send_pkt(sock, &fin);
     if (ret == -1) {
@@ -289,29 +293,24 @@ int uconnect( struct usocket * sock
 
     sock->conn_id_send = rand();
     sock->conn_id_recv = sock->conn_id_recv + 1;
+    sock->addr    = *addr;
+    sock->addrlen = addrlen;
 
     packet syn;
-    fill_header(sock, &syn);
-    syn.type      = ST_SYN;
-
-    int ret = sendto(sock->fd, &syn, sizeof(syn), 0
-                    , addr, addrlen);
+    fill_header(sock, &syn, ST_SYN);
+    int ret = send_pkt(sock, &syn);
     if (ret == -1) {
         return ret;
     }
 
     // TODO ECONNREFUSED
 
-    char buf[sizeof(struct _packet)];
-    struct sockaddr_in recv_addr;
-    socklen_t   recv_addrlen;
-
-    ret = recvfrom(sock->fd, buf, sizeof(struct _packet), 0
-                  , (struct sockaddr *) &recv_addr, &recv_addrlen);
+    packet state;
+    ret = recv_pkt(sock, &state);
     if (ret == -1) {
         return ret;
     }
-    print_packet((packet*)buf);
+    print_packet(&state);
 
     sock->status = CONNECTED;
 
@@ -380,9 +379,7 @@ uaccept( struct usocket * sock
     conn->status       = CONNECTED;
 
     packet st;
-    fill_header(conn, &st);
-    st.type = ST_STATE,
-
+    fill_header(conn, &st, ST_STATE);
     size = sendto( sock->fd, &st, sizeof(st), 0
                  , addr, *addrlen);
 
@@ -401,8 +398,7 @@ int usend(struct usocket * sock, const void * buf, size_t len)
     assert(sock != NULL);
 
     packet dat;
-    fill_header(sock, &dat);
-    dat.type = ST_DATA;
+    fill_header(sock, &dat, ST_DATA);
 
     errno = ENOSYS;
     return -1;
