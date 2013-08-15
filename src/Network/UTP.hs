@@ -1,22 +1,26 @@
 {-# LANGUAGE EmptyDataDecls           #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Network.UTP
-       ( SockAddr(..)
+       ( Socket, PortNumber, SockAddr(..)
        , socket, close, withSocket
 
        , connect
        , bind, listen, accept
+       , listenOn
 
        , send, recv
        , sendAll
+
+       , userver, uclient
        ) where
 
+import Control.Concurrent
 import Control.Exception
 import Control.Monad
 import Data.ByteString as BS
 import Data.ByteString.Internal as BS
 import Data.Word
-import Network.Socket (SockAddr(..))
+import Network.Socket (PortNumber, SockAddr(..), iNADDR_ANY)
 
 import Foreign.C.Error
 import Foreign.C.Types
@@ -87,6 +91,16 @@ listen sock qlen =
   throwErrnoIfMinus1_ "listen" $ do
     c_listen sock (fromIntegral qlen)
 
+defaultBacklog :: Int
+defaultBacklog = 128
+
+listenOn :: PortNumber -> IO Socket
+listenOn port = do
+  sock <- socket
+  bind sock (SockAddrInet port iNADDR_ANY) `onException` close sock
+  listen sock defaultBacklog  `onException` close sock
+  return sock
+
 -- TODO use Foreign.Marshal.Pool to avoid alloca?
 accept :: Socket -> IO (Socket, SockAddr)
 accept sock =
@@ -117,3 +131,19 @@ sendAll sock bs = do
   len <- send sock bs
   when (len /= BS.length bs) $ do
     sendAll sock $ BS.drop len bs
+
+type Connection = (Socket, SockAddr)
+
+userver :: PortNumber -> (Connection -> IO ()) -> IO ()
+userver port action =
+  bracket (listenOn port) close $ \sock -> do
+    forever $ do
+      conn <- accept sock
+      forkIO $ action conn
+      return ()
+
+uclient :: SockAddr -> (Socket -> IO a) -> IO a
+uclient addr action =
+  withSocket $ \sock -> do
+    connect sock addr
+    action sock
