@@ -291,8 +291,8 @@ int uconnect( struct usocket * sock
         return -1;
     }
 
-    sock->conn_id_send = rand();
-    sock->conn_id_recv = sock->conn_id_recv + 1;
+    sock->conn_id_recv = rand();
+    sock->conn_id_send = sock->conn_id_recv + 1;
     sock->addr    = *addr;
     sock->addrlen = addrlen;
 
@@ -310,12 +310,14 @@ int uconnect( struct usocket * sock
     if (ret == -1) {
         return ret;
     }
-    print_packet(&state);
 
+    sock->ack_nr = state.seq_nr;
     sock->status = CONNECTED;
 
-    errno = ENOSYS;
-    return -1;
+    print_packet(&state);
+    print_sock_state(sock);
+
+    return 0;
 }
 
 int ubind( struct usocket * sock
