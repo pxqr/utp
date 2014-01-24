@@ -2,10 +2,14 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Network.UTP
        ( Socket, PortNumber, SockAddr(..), iNADDR_ANY
-       , socket, close, withSocket
+       , socket
+       , close
+       , withSocket
 
        , connect
-       , bind, listen, accept
+       , bind
+       , listen
+       , accept
        , listenOn
 
        , send, recv

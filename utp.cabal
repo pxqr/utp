@@ -2,9 +2,9 @@ name:                  utp
 version:               0.1.0.0
 license:               BSD3
 license-file:          LICENSE
-author:                Sam T.
-maintainer:            Sam T. <pxqr.sta@gmail.com>
-copyright:             (c) 2013, Sam T.
+author:                Sam Truzjan
+maintainer:            Sam Truzjan <pxqr.sta@gmail.com>
+copyright:             (c) 2013-2014 Sam Truzjan
 category:              Network
 build-type:            Simple
 cabal-version:         >= 1.10
@@ -12,49 +12,52 @@ tested-with:           GHC == 7.6.3
 homepage:              https://github.com/cobit/utp
 bug-reports:           https://github.com/cobit/utp/issues
 synopsis:              micro transport protocol
--- description:
+description:           micro transport protocol
 
 source-repository head
   type:                git
   location:            git://github.com/cobit/utp.git
 
-flag testing
-  default: False
+source-repository this
+  type:                git
+  location:            git://github.com/cobit/utp.git
+  tag:                 v0.0.0.3
 
 library
   default-language:    Haskell2010
   default-extensions:  PatternGuards
-                     , RecordWildCards
-
-  C-sources:           cbits/utp.c
-  CC-options:          -Wall
-  include-dirs:        include
-  includes:            utp.h
-  install-includes:    utp.h
-
   hs-source-dirs:      src
   exposed-modules:     Network.UTP
+                       Network.UTP.Connection
+                       Network.UTP.Manager
+                       Network.UTP.Packet
+                       Network.UTP.Window
   build-depends:       base       == 4.6.*
                      , bytestring == 0.10.*
+                     , containers
                      , network    == 2.4.*
+                     , time
 
+                     , cereal
+                     , data-default
+                     , stm
+  ghc-options:         -Wall -O2
 
-test-suite client
-  default-language:    Haskell2010
+test-suite spec
   type:                exitcode-stdio-1.0
-  main-is:             Client.hs
-  hs-source-dirs:      tests
-  build-depends:       base == 4.*, utp
-  ghc-options:         -Wall
-  if !flag(testing)
-     buildable:        False
-
-test-suite server
   default-language:    Haskell2010
-  type:                exitcode-stdio-1.0
-  main-is:             Server.hs
   hs-source-dirs:      tests
-  build-depends:       base == 4.*, utp
+  main-is:             Spec.hs
+  other-modules:       Network.UTP.ManagerSpec
+                       Network.UTP.PacketSpec
+  build-depends:       base == 4.*
+                     , bytestring
+                     , data-default
+                     , cereal
+
+                     , utp
+
+                     , hspec >= 1.8.1.1
+                     , QuickCheck
+                     , quickcheck-instances
   ghc-options:         -Wall
-  if !flag(testing)
-     buildable:        False
